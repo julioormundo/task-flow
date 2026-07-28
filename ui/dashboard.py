@@ -1,0 +1,215 @@
+import customtkinter as ctk
+from config import COLORS, FONTS, SPACING
+from ui.components import RoundedFrame
+from ui.task_dialog import TaskDialog
+
+PRIORITY_COLORS = {
+    "Alta": "#ef4444",   # Vermelho
+    "Média": "#f59e0b",  # Laranja
+    "Baixa": "#3b82f6"   # Azul
+}
+
+class DashboardView(ctk.CTkFrame):
+    """Tela principal do TaskFlow com visualização moderna de tarefas."""
+
+    def __init__(self, master, task_manager, **kwargs):
+        super().__init__(master, corner_radius=18, fg_color=COLORS["background"], **kwargs)
+        self.task_manager = task_manager
+        self.current_filter = "Todas"
+        self.build_ui()
+
+    def build_ui(self):
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(2, weight=1)
+
+        # 1. Cabeçalho Principal (Com o Botão de Adicionar Tarefa)
+        header = RoundedFrame(self, fg_color=COLORS["panel"])
+        header.grid(row=0, column=0, sticky="ew", padx=SPACING["large"], pady=(SPACING["large"], SPACING["medium"]))
+        header.grid_columnconfigure(0, weight=1)
+
+        text_container = ctk.CTkFrame(header, fg_color="transparent")
+        text_container.grid(row=0, column=0, sticky="w", padx=SPACING["large"], pady=SPACING["medium"])
+
+        title = ctk.CTkLabel(text_container, text="TaskFlow", font=FONTS["title"], text_color=COLORS["text"])
+        title.pack(anchor="w")
+
+        subtitle = ctk.CTkLabel(
+            text_container,
+            text="Organize suas tarefas com prioridades e listas inteligentes",
+            font=FONTS["body"],
+            text_color=COLORS["muted"]
+        )
+        subtitle.pack(anchor="w")
+
+        # Botão "+ Nova Tarefa"
+        add_btn = ctk.CTkButton(
+            header,
+            text="+ Nova Tarefa",
+            font=("Segoe UI", 13, "bold"),
+            fg_color=COLORS["primary"],
+            hover_color=COLORS["primary_hover"],
+            height=36,
+            command=self.open_add_dialog
+        )
+        add_btn.grid(row=0, column=1, sticky="e", padx=SPACING["large"], pady=SPACING["medium"])
+
+        # 2. Barra de Seleção / Filtros (Abas)
+        filter_frame = ctk.CTkFrame(self, fg_color="transparent")
+        filter_frame.grid(row=1, column=0, sticky="ew", padx=SPACING["large"], pady=(0, SPACING["small"]))
+        filter_frame.grid_columnconfigure(0, weight=1)
+
+        self.filter_segmented = ctk.CTkSegmentedButton(
+            filter_frame,
+            values=["Todas", "Pendentes", "Concluídas", "Favoritas"],
+            selected_color=COLORS["primary"],
+            selected_hover_color=COLORS["primary_hover"],
+            unselected_color=COLORS["panel"],
+            unselected_hover_color=COLORS["surface"],
+            text_color=COLORS["text"],
+            command=self.on_filter_changed
+        )
+        self.filter_segmented.set("Todas")
+        self.filter_segmented.pack(side="left")
+
+        # 3. Lista Rolável de Tarefas
+        self.task_list = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.task_list.grid(row=2, column=0, sticky="nsew", padx=SPACING["large"], pady=(0, SPACING["large"]))
+        self.task_list.grid_columnconfigure(0, weight=1)
+
+        self.refresh_tasks()
+
+    def on_filter_changed(self, selected_filter):
+        self.current_filter = selected_filter
+        self.refresh_tasks()
+
+    def open_add_dialog(self):
+        TaskDialog(self, self.task_manager, on_save_callback=self.refresh_tasks)
+
+    def open_edit_dialog(self, task):
+        TaskDialog(self, self.task_manager, task=task, on_save_callback=self.refresh_tasks)
+
+    def refresh_tasks(self):
+        for child in self.task_list.winfo_children():
+            child.destroy()
+
+        tasks = self.task_manager.list_tasks(filter_by=self.current_filter)
+
+        if not tasks:
+            empty_label = ctk.CTkLabel(
+                self.task_list,
+                text=f"Nenhuma tarefa encontrada em '{self.current_filter}'.",
+                text_color=COLORS["muted"],
+                font=FONTS["body"]
+            )
+            empty_label.pack(pady=SPACING["large"])
+            return
+
+        for task in tasks:
+            # Card estilo Quadradinho
+            card = RoundedFrame(self.task_list, fg_color=COLORS["panel"])
+            card.pack(fill="x", padx=2, pady=SPACING["small"])
+            card.grid_columnconfigure(1, weight=1)
+
+            # --- Linha Superior do Card: Badge de Prioridade + Data + Favorito ---
+            top_bar = ctk.CTkFrame(card, fg_color="transparent")
+            top_bar.grid(row=0, column=0, columnspan=2, sticky="ew", padx=SPACING["medium"], pady=(SPACING["small"], 2))
+            top_bar.grid_columnconfigure(1, weight=1)
+
+            # Badge de Prioridade
+            p_color = PRIORITY_COLORS.get(task.priority, COLORS["primary"])
+            p_badge = ctk.CTkLabel(
+                top_bar,
+                text=f"  {task.priority}  ",
+                font=FONTS["small"],
+                text_color="#ffffff",
+                fg_color=p_color,
+                corner_radius=10
+            )
+            p_badge.grid(row=0, column=0, sticky="w")
+
+            # Data de Criação
+            date_text = f"Criado em: {task.created_at}" if task.created_at else ""
+            date_label = ctk.CTkLabel(top_bar, text=date_text, font=FONTS["small"], text_color=COLORS["muted"])
+            date_label.grid(row=0, column=1, sticky="w", padx=SPACING["medium"])
+
+            # Estrela de Favorito
+            star_symbol = "★" if task.is_favorite else "☆"
+            star_color = "#f59e0b" if task.is_favorite else COLORS["muted"]
+            fav_btn = ctk.CTkButton(
+                top_bar,
+                text=star_symbol,
+                width=30,
+                height=24,
+                fg_color="transparent",
+                hover_color=COLORS["surface"],
+                text_color=star_color,
+                font=("Segoe UI", 16, "bold"),
+                command=lambda t_id=task.id: self.toggle_favorite(t_id)
+            )
+            fav_btn.grid(row=0, column=2, sticky="e")
+
+            # --- Conteúdo Central: Título e Descrição ---
+            title_text = f"✓ {task.title}" if task.completed else task.title
+            text_color = COLORS["muted"] if task.completed else COLORS["text"]
+
+            content_frame = ctk.CTkFrame(card, fg_color="transparent")
+            content_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=SPACING["medium"], pady=(2, SPACING["small"]))
+
+            title_label = ctk.CTkLabel(content_frame, text=title_text, font=FONTS["subtitle"], text_color=text_color)
+            title_label.pack(anchor="w")
+
+            if task.description:
+                desc_label = ctk.CTkLabel(content_frame, text=task.description, font=FONTS["body"], text_color=COLORS["muted"])
+                desc_label.pack(anchor="w", pady=(2, 0))
+
+            # --- Ações do Card (Concluir, Editar, Excluir) ---
+            actions_frame = ctk.CTkFrame(card, fg_color="transparent")
+            actions_frame.grid(row=0, column=2, rowspan=2, sticky="e", padx=SPACING["medium"])
+
+            # Botão Concluir / Desfazer
+            status_btn = ctk.CTkButton(
+                actions_frame,
+                text="Desfazer" if task.completed else "Concluir",
+                width=75,
+                height=30,
+                fg_color=COLORS["surface"] if task.completed else COLORS["success"],
+                hover_color="#16a34a" if not task.completed else COLORS["border"],
+                command=lambda t_id=task.id: self.toggle_task(t_id)
+            )
+            status_btn.pack(side="left", padx=2)
+
+            # Botão Editar
+            edit_btn = ctk.CTkButton(
+                actions_frame,
+                text="✏️",
+                width=35,
+                height=30,
+                fg_color=COLORS["surface"],
+                hover_color=COLORS["primary"],
+                command=lambda t=task: self.open_edit_dialog(t)
+            )
+            edit_btn.pack(side="left", padx=2)
+
+            # Botão Excluir
+            delete_btn = ctk.CTkButton(
+                actions_frame,
+                text="🗑️",
+                width=35,
+                height=30,
+                fg_color="#ef4444",
+                hover_color="#dc2626",
+                command=lambda t_id=task.id: self.delete_task(t_id)
+            )
+            delete_btn.pack(side="left", padx=2)
+
+    def toggle_task(self, task_id: int):
+        self.task_manager.toggle_task_completion(task_id)
+        self.refresh_tasks()
+
+    def toggle_favorite(self, task_id: int):
+        self.task_manager.toggle_favorite(task_id)
+        self.refresh_tasks()
+
+    def delete_task(self, task_id: int):
+        self.task_manager.delete_task(task_id)
+        self.refresh_tasks()
