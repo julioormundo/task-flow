@@ -1,4 +1,5 @@
 from tkinter import filedialog
+import webbrowser
 import customtkinter as ctk
 from config import COLORS, FONTS, SPACING, WINDOW_SIZE, WINDOW_TITLE
 from data.database import SQLiteDatabase
@@ -38,6 +39,8 @@ class BlogView(ctk.CTkFrame):
 
 
 class SettingsView(ctk.CTkFrame):
+    """Tela de Configurações com Aparência, Backup e Opções de Conta."""
+    
     def __init__(self, master, task_manager, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
         self.task_manager = task_manager
@@ -45,21 +48,40 @@ class SettingsView(ctk.CTkFrame):
         title = ctk.CTkLabel(self, text="⚙️ Configurações", font=("Segoe UI", 20, "bold"), text_color=COLORS["text"])
         title.pack(anchor="w", padx=20, pady=(20, 10))
 
-        card = RoundedFrame(self, fg_color=COLORS["panel"])
-        card.pack(fill="x", padx=20, pady=10)
+        # --- CARD 1: APARÊNCIA DA INTERFACE ---
+        card_theme = RoundedFrame(self, fg_color=COLORS["panel"])
+        card_theme.pack(fill="x", padx=20, pady=10)
 
-        card_title = ctk.CTkLabel(card, text="📁 Exportação de Dados", font=("Segoe UI", 16, "bold"), text_color=COLORS["text"])
-        card_title.pack(anchor="w", padx=20, pady=(15, 5))
+        theme_title = ctk.CTkLabel(card_theme, text="🎨 Aparência e Tema", font=("Segoe UI", 16, "bold"), text_color=COLORS["text"])
+        theme_title.pack(anchor="w", padx=20, pady=(15, 5))
 
-        card_desc = ctk.CTkLabel(
-            card, 
-            text="Exporte suas tarefas salvas no SQLite para formatos externos como backup ou análise em planilhas.",
-            font=("Segoe UI", 13),
-            text_color=COLORS["muted"]
+        theme_desc = ctk.CTkLabel(card_theme, text="Escolha a preferência visual do aplicativo.", font=("Segoe UI", 13), text_color=COLORS["muted"])
+        theme_desc.pack(anchor="w", padx=20, pady=(0, 10))
+
+        self.theme_segmented = ctk.CTkSegmentedButton(
+            card_theme,
+            values=["Escuro", "Claro", "Sistema"],
+            selected_color=COLORS["primary"],
+            selected_hover_color=COLORS["primary_hover"],
+            unselected_color=COLORS["surface"],
+            unselected_hover_color=COLORS["border"],
+            text_color=COLORS["text"],
+            command=self.change_appearance_mode
         )
-        card_desc.pack(anchor="w", padx=20, pady=(0, 15))
+        self.theme_segmented.set("Escuro")
+        self.theme_segmented.pack(anchor="w", padx=20, pady=(0, 15))
 
-        btn_frame = ctk.CTkFrame(card, fg_color="transparent")
+        # --- CARD 2: EXPORTAÇÃO E BACKUP ---
+        card_export = RoundedFrame(self, fg_color=COLORS["panel"])
+        card_export.pack(fill="x", padx=20, pady=10)
+
+        export_title = ctk.CTkLabel(card_export, text="📁 Backup e Exportação de Dados", font=("Segoe UI", 16, "bold"), text_color=COLORS["text"])
+        export_title.pack(anchor="w", padx=20, pady=(15, 5))
+
+        export_desc = ctk.CTkLabel(card_export, text="Exporte suas tarefas em formatos externos para segurança ou análise.", font=("Segoe UI", 13), text_color=COLORS["muted"])
+        export_desc.pack(anchor="w", padx=20, pady=(0, 15))
+
+        btn_frame = ctk.CTkFrame(card_export, fg_color="transparent")
         btn_frame.pack(anchor="w", padx=20, pady=(0, 15))
 
         btn_json = ctk.CTkButton(
@@ -80,8 +102,12 @@ class SettingsView(ctk.CTkFrame):
         )
         btn_csv.pack(side="left")
 
-        self.status_label = ctk.CTkLabel(card, text="", font=("Segoe UI", 12), text_color=COLORS["success"])
+        self.status_label = ctk.CTkLabel(card_export, text="", font=("Segoe UI", 12), text_color=COLORS["success"])
         self.status_label.pack(anchor="w", padx=20, pady=(0, 15))
+
+    def change_appearance_mode(self, mode_selected: str):
+        mode_map = {"Escuro": "dark", "Claro": "light", "Sistema": "system"}
+        ctk.set_appearance_mode(mode_map.get(mode_selected, "dark"))
 
     def export_json(self):
         filepath = filedialog.asksaveasfilename(
@@ -111,12 +137,70 @@ class SettingsView(ctk.CTkFrame):
 
 
 class TalkDevsView(ctk.CTkFrame):
+    """Tela Fale Conosco com canais de contato direto com o desenvolvedor."""
+    
     def __init__(self, master, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
+
         title = ctk.CTkLabel(self, text="💬 Fale Conosco", font=("Segoe UI", 20, "bold"), text_color=COLORS["text"])
-        title.pack(anchor="w", padx=20, pady=20)
-        label = ctk.CTkLabel(self, text="Fale com os desenvolvedores.", font=("Segoe UI", 13), text_color=COLORS["muted"])
-        label.pack(anchor="w", padx=20)
+        title.pack(anchor="w", padx=20, pady=(20, 10))
+
+        # Card Principal de Contato
+        card = RoundedFrame(self, fg_color=COLORS["panel"])
+        card.pack(fill="x", padx=20, pady=10)
+
+        dev_title = ctk.CTkLabel(card, text="Desenvolvido por Julio Ormundo", font=("Segoe UI", 16, "bold"), text_color=COLORS["text"])
+        dev_title.pack(anchor="w", padx=20, pady=(15, 5))
+
+        dev_desc = ctk.CTkLabel(
+            card,
+            text="Tem dúvidas, encontrou um bug ou deseja dar um feedback sobre o TaskFlow? Entre em contato diretamente através de um dos canais abaixo:",
+            font=("Segoe UI", 13),
+            text_color=COLORS["muted"],
+            justify="left",
+            wraplength=600
+        )
+        dev_desc.pack(anchor="w", padx=20, pady=(0, 20))
+
+        # Botões de Canais de Contato
+        btn_container = ctk.CTkFrame(card, fg_color="transparent")
+        btn_container.pack(anchor="w", padx=20, pady=(0, 20))
+
+        # 1. Botão Enviar E-mail
+        btn_email = ctk.CTkButton(
+            btn_container,
+            text="✉️ Enviar E-mail",
+            font=("Segoe UI", 13, "bold"),
+            fg_color=COLORS["primary"],
+            hover_color=COLORS["primary_hover"],
+            height=36,
+            command=lambda: webbrowser.open("mailto:ormundo.julio@email.com?subject=TaskFlow%20-%20Contato")
+        )
+        btn_email.pack(side="left", padx=(0, 10))
+
+        # 2. Botão GitHub
+        btn_github = ctk.CTkButton(
+            btn_container,
+            text="🐙 Ver GitHub",
+            font=("Segoe UI", 13, "bold"),
+            fg_color=COLORS["surface"],
+            hover_color=COLORS["border"],
+            height=36,
+            command=lambda: webbrowser.open("https://github.com/julioormundo")
+        )
+        btn_github.pack(side="left", padx=(0, 10))
+
+        # 3. Botão LinkedIn
+        btn_linkedin = ctk.CTkButton(
+            btn_container,
+            text="💼 LinkedIn",
+            font=("Segoe UI", 13, "bold"),
+            fg_color="#0077b5",
+            hover_color="#005885",
+            height=36,
+            command=lambda: webbrowser.open("https://www.linkedin.com/in/julio-ormundo")
+        )
+        btn_linkedin.pack(side="left")
 
 
 class TaskFlowApp(ctk.CTk):
