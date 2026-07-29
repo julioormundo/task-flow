@@ -22,7 +22,7 @@ class DashboardView(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(3, weight=1)
 
-        # --- 1. CABEÇALHO ---
+        # 1. Cabeçalho
         header = RoundedFrame(self, fg_color=COLORS["panel"])
         header.grid(row=0, column=0, sticky="ew", padx=SPACING["large"], pady=(SPACING["large"], SPACING["small"]))
         header.grid_columnconfigure(0, weight=1)
@@ -41,7 +41,6 @@ class DashboardView(ctk.CTkFrame):
         )
         subtitle.pack(anchor="w")
 
-        # Botão "+ Nova Tarefa"
         add_btn = ctk.CTkButton(
             header,
             text="+ Nova Tarefa",
@@ -53,7 +52,7 @@ class DashboardView(ctk.CTkFrame):
         )
         add_btn.grid(row=0, column=1, sticky="e", padx=SPACING["large"], pady=SPACING["medium"])
 
-        # --- 2. PAINEL DE ESTATÍSTICAS ---
+        # 2. Estatísticas
         self.stats_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.stats_frame.grid(row=1, column=0, sticky="ew", padx=SPACING["large"], pady=(0, SPACING["small"]))
         self.stats_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
@@ -63,12 +62,11 @@ class DashboardView(ctk.CTkFrame):
         self.lbl_stat_completed = self._create_stat_card(self.stats_frame, "Concluídas", "0", 2)
         self.lbl_stat_progress = self._create_stat_card(self.stats_frame, "Progresso", "0%", 3)
 
-        # --- 3. BARRA DE PESQUISA E FILTROS ---
+        # 3. Busca e Filtros
         controls_frame = ctk.CTkFrame(self, fg_color="transparent")
         controls_frame.grid(row=2, column=0, sticky="ew", padx=SPACING["large"], pady=(0, SPACING["small"]))
         controls_frame.grid_columnconfigure(0, weight=1)
 
-        # Campo de Busca
         self.search_entry = ctk.CTkEntry(
             controls_frame,
             placeholder_text="🔍 Buscar por título ou descrição...",
@@ -77,10 +75,8 @@ class DashboardView(ctk.CTkFrame):
             border_color=COLORS["border"]
         )
         self.search_entry.grid(row=0, column=0, sticky="ew", padx=(0, SPACING["medium"]))
-        # Dispara a busca dinamicamente ao digitar
         self.search_entry.bind("<KeyRelease>", lambda event: self.refresh_tasks())
 
-        # Botões de Aba (Filtros)
         self.filter_segmented = ctk.CTkSegmentedButton(
             controls_frame,
             values=["Todas", "Pendentes", "Concluídas", "Favoritas"],
@@ -94,7 +90,7 @@ class DashboardView(ctk.CTkFrame):
         self.filter_segmented.set("Todas")
         self.filter_segmented.grid(row=0, column=1, sticky="e")
 
-        # --- 4. LISTA DE TAREFAS ---
+        # 4. Lista de Tarefas
         self.task_list = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.task_list.grid(row=3, column=0, sticky="nsew", padx=SPACING["large"], pady=(0, SPACING["large"]))
         self.task_list.grid_columnconfigure(0, weight=1)
@@ -102,20 +98,18 @@ class DashboardView(ctk.CTkFrame):
         self.refresh_tasks()
 
     def _create_stat_card(self, parent, title: str, initial_val: str, col: int) -> ctk.CTkLabel:
-        """Cria um pequeno cartão de estatística reutilizável."""
         card = RoundedFrame(parent, fg_color=COLORS["panel"])
         card.grid(row=0, column=col, sticky="ew", padx=4, pady=2)
-        
+
         lbl_title = ctk.CTkLabel(card, text=title, font=FONTS["small"], text_color=COLORS["muted"])
         lbl_title.pack(anchor="w", padx=12, pady=(8, 0))
 
         lbl_value = ctk.CTkLabel(card, text=initial_val, font=("Segoe UI", 16, "bold"), text_color=COLORS["text"])
         lbl_value.pack(anchor="w", padx=12, pady=(0, 8))
-        
+
         return lbl_value
 
     def update_stats_display(self):
-        """Atualiza os números do painel de estatísticas."""
         stats = self.task_manager.get_stats()
         self.lbl_stat_total.configure(text=str(stats["total"]))
         self.lbl_stat_pending.configure(text=str(stats["pending"]))
@@ -133,14 +127,11 @@ class DashboardView(ctk.CTkFrame):
         TaskDialog(self, self.task_manager, task=task, on_save_callback=self.refresh_tasks)
 
     def refresh_tasks(self):
-        # 1. Atualiza métricas
         self.update_stats_display()
 
-        # 2. Limpa lista atual
         for child in self.task_list.winfo_children():
             child.destroy()
 
-        # 3. Busca tarefas filtradas e com o termo digitado
         search_query = self.search_entry.get()
         tasks = self.task_manager.list_tasks(filter_by=self.current_filter, search_query=search_query)
 
@@ -155,13 +146,11 @@ class DashboardView(ctk.CTkFrame):
             empty_label.pack(pady=SPACING["large"])
             return
 
-        # 4. Renderiza os cards
         for task in tasks:
             card = RoundedFrame(self.task_list, fg_color=COLORS["panel"])
             card.pack(fill="x", padx=2, pady=SPACING["small"])
             card.grid_columnconfigure(1, weight=1)
 
-            # Topo do Card
             top_bar = ctk.CTkFrame(card, fg_color="transparent")
             top_bar.grid(row=0, column=0, columnspan=2, sticky="ew", padx=SPACING["medium"], pady=(SPACING["small"], 2))
             top_bar.grid_columnconfigure(1, weight=1)
@@ -196,7 +185,6 @@ class DashboardView(ctk.CTkFrame):
             )
             fav_btn.grid(row=0, column=2, sticky="e")
 
-            # Conteúdo
             title_text = f"✓ {task.title}" if task.completed else task.title
             text_color = COLORS["muted"] if task.completed else COLORS["text"]
 
@@ -210,7 +198,6 @@ class DashboardView(ctk.CTkFrame):
                 desc_label = ctk.CTkLabel(content_frame, text=task.description, font=FONTS["body"], text_color=COLORS["muted"])
                 desc_label.pack(anchor="w", pady=(2, 0))
 
-            # Ações
             actions_frame = ctk.CTkFrame(card, fg_color="transparent")
             actions_frame.grid(row=0, column=2, rowspan=2, sticky="e", padx=SPACING["medium"])
 

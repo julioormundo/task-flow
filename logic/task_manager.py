@@ -1,27 +1,25 @@
+import csv
+import json
+from datetime import datetime
 from typing import List, Optional
 from models.task import Task
 
 class TaskManager:
-    """Controla as operações de tarefas (CRUD + Filtros + Estatísticas)."""
+    """Controla as operações de tarefas do usuário logado."""
 
-    def __init__(self, storage):
+    def __init__(self, storage, user_id: int):
         self.storage = storage
-        self._tasks: List[Task] = self.storage.load_tasks()
+        self.user_id = user_id
+        self._tasks: List[Task] = self.storage.load_tasks(self.user_id)
 
     def add_task(self, title: str, description: str = "", priority: str = "Média", is_favorite: bool = False) -> Task:
         title = title.strip()
         if not title:
             raise ValueError("O título não pode ficar vazio.")
 
-        task = Task(
-            id=self._next_id(),
-            title=title,
-            description=description.strip(),
-            priority=priority,
-            is_favorite=is_favorite
-        )
+        created_at = datetime.now().strftime("%d/%m/%Y %H:%M")
+        task = self.storage.add_task(self.user_id, title, description.strip(), priority, is_favorite, created_at)
         self._tasks.append(task)
-        self.storage.save_tasks(self._tasks)
         return task
 
     def update_task(self, task_id: int, title: str, description: str, priority: str) -> Optional[Task]:
@@ -34,15 +32,13 @@ class TaskManager:
                 task.title = title
                 task.description = description.strip()
                 task.priority = priority
-                self.storage.save_tasks(self._tasks)
+                self.storage.update_task(task, self.user_id)
                 return task
         return None
 
     def list_tasks(self, filter_by: str = "Todas", search_query: str = "") -> List[Task]:
-        """Retorna as tarefas filtradas por aba e por termo de pesquisa."""
         tasks = self._tasks
 
-        # 1. Filtro por Categoria / Aba
         if filter_by == "Pendentes":
             tasks = [t for t in tasks if not t.completed]
         elif filter_by == "Concluídas":
@@ -50,7 +46,6 @@ class TaskManager:
         elif filter_by == "Favoritas":
             tasks = [t for t in tasks if t.is_favorite]
 
-        # 2. Filtro por Busca (Título ou Descrição)
         query = search_query.strip().lower()
         if query:
             tasks = [
@@ -61,7 +56,6 @@ class TaskManager:
         return tasks
 
     def get_stats(self) -> dict:
-        """Calcula as estatísticas gerais do aplicativo."""
         total = len(self._tasks)
         completed = sum(1 for t in self._tasks if t.completed)
         pending = total - completed
@@ -80,7 +74,7 @@ class TaskManager:
         for task in self._tasks:
             if task.id == task_id:
                 task.completed = not task.completed
-                self.storage.save_tasks(self._tasks)
+                self.storage.update_task(task, self.user_id)
                 return task
         return None
 
@@ -88,25 +82,24 @@ class TaskManager:
         for task in self._tasks:
             if task.id == task_id:
                 task.is_favorite = not task.is_favorite
-                self.storage.save_tasks(self._tasks)
+                self.storage.update_task(task, self.user_id)
                 return task
         return None
 
     def delete_task(self, task_id: int) -> bool:
-        initial_count = len(self._tasks)
-        self._tasks = [t for t in self._tasks if t.id != task_id]
-        if len(self._tasks) < initial_count:
-            self.storage.save_tasks(self._tasks)
+        task_to_remove = None
+        for task in self._tasks:
+            if task.id == task_id:
+                task_to_remove = task
+                break
+
+        if task_to_remove:
+            self._tasks.remove(task_to_remove)
+            self.storage.delete_task(task_id, self.user_id)
             return True
         return False
 
-    def _next_id(self) -> int:
-        if not self._tasks:
-            return 1
-        return max(task.id for task in self._tasks) + 1
-
     def export_to_json(self, filepath: str) -> None:
-        """Exporta todas as tarefas para um arquivo JSON."""
         data = [
             {
                 "id": t.id,
@@ -123,18 +116,12 @@ class TaskManager:
             json.dump(data, handle, ensure_ascii=False, indent=2)
 
     def export_to_csv(self, filepath: str) -> None:
-        """Exporta todas as tarefas para um arquivo CSV estruturado."""
         with open(filepath, "w", newline="", encoding="utf-8-sig") as handle:
             writer = csv.writer(handle)
-            # Cabeçalho da planilha
             writer.writerow(["ID", "Título", "Descrição", "Prioridade", "Concluída", "Favorita", "Data de Criação"])
-            
             for t in self._tasks:
                 writer.writerow([
-                    t.id,
-                    t.title,
-                    t.description,
-                    t.priority,
+                    t.id, t.title, t.description, t.priority,
                     "Sim" if t.completed else "Não",
                     "Sim" if t.is_favorite else "Não",
                     t.created_at

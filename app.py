@@ -1,27 +1,23 @@
 from tkinter import filedialog
 import customtkinter as ctk
-from config import COLORS, WINDOW_SIZE, WINDOW_TITLE
+from config import COLORS, FONTS, SPACING, WINDOW_SIZE, WINDOW_TITLE
 from data.database import SQLiteDatabase
+from logic.auth_manager import AuthManager
 from logic.task_manager import TaskManager
+from ui.auth_view import LoginRegisterView, WelcomeBackView
 from ui.components import RoundedFrame
 from ui.dashboard import DashboardView
 
 class BlogView(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
-        
         title = ctk.CTkLabel(self, text="📢 Blog de Atualizações", font=("Segoe UI", 20, "bold"), text_color=COLORS["text"])
         title.pack(anchor="w", padx=20, pady=(20, 10))
         
         card = RoundedFrame(self, fg_color=COLORS["panel"])
         card.pack(fill="x", padx=20, pady=10)
         
-        notice_badge = ctk.CTkLabel(
-            card, 
-            text="⚠️ TOME NOTA", 
-            font=("Segoe UI", 11, "bold"), 
-            text_color="#f59e0b"
-        )
+        notice_badge = ctk.CTkLabel(card, text="⚠️ TOME NOTA", font=("Segoe UI", 11, "bold"), text_color="#f59e0b")
         notice_badge.pack(anchor="w", padx=20, pady=(15, 5))
         
         self.post = ctk.CTkLabel(
@@ -33,7 +29,6 @@ class BlogView(ctk.CTkFrame):
             anchor="w"
         )
         self.post.pack(fill="x", padx=20, pady=(0, 15))
-        
         self.bind("<Configure>", self._on_resize)
 
     def _on_resize(self, event):
@@ -50,7 +45,6 @@ class SettingsView(ctk.CTkFrame):
         title = ctk.CTkLabel(self, text="⚙️ Configurações", font=("Segoe UI", 20, "bold"), text_color=COLORS["text"])
         title.pack(anchor="w", padx=20, pady=(20, 10))
 
-        # Card de Exportação de Dados
         card = RoundedFrame(self, fg_color=COLORS["panel"])
         card.pack(fill="x", padx=20, pady=10)
 
@@ -65,7 +59,6 @@ class SettingsView(ctk.CTkFrame):
         )
         card_desc.pack(anchor="w", padx=20, pady=(0, 15))
 
-        # Container de Botões
         btn_frame = ctk.CTkFrame(card, fg_color="transparent")
         btn_frame.pack(anchor="w", padx=20, pady=(0, 15))
 
@@ -87,7 +80,6 @@ class SettingsView(ctk.CTkFrame):
         )
         btn_csv.pack(side="left")
 
-        # Label de Status/Mensagem
         self.status_label = ctk.CTkLabel(card, text="", font=("Segoe UI", 12), text_color=COLORS["success"])
         self.status_label.pack(anchor="w", padx=20, pady=(0, 15))
 
@@ -121,10 +113,8 @@ class SettingsView(ctk.CTkFrame):
 class TalkDevsView(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
-        
         title = ctk.CTkLabel(self, text="💬 Fale Conosco", font=("Segoe UI", 20, "bold"), text_color=COLORS["text"])
         title.pack(anchor="w", padx=20, pady=20)
-        
         label = ctk.CTkLabel(self, text="Fale com os desenvolvedores.", font=("Segoe UI", 13), text_color=COLORS["muted"])
         label.pack(anchor="w", padx=20)
 
@@ -137,24 +127,64 @@ class TaskFlowApp(ctk.CTk):
         self.minsize(900, 600)
         self.configure(fg_color=COLORS["background"])
 
-        # Inicialização com SQLite
-        storage = SQLiteDatabase("data/tasks.db")
-        self.task_manager = TaskManager(storage)
+        self.storage = SQLiteDatabase("data/tasks.db")
+        self.auth_manager = AuthManager(self.storage)
 
-        # Configuração do Grid Principal
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        self.current_user = None
+        self.task_manager = None
+        self.current_container = None
 
-        # 1. Menu Lateral (Sidebar)
+        self.check_initial_auth()
+
+    def create_root_container(self):
+        if self.current_container:
+            self.current_container.destroy()
+        self.current_container = ctk.CTkFrame(self, fg_color="transparent")
+        self.current_container.pack(fill="both", expand=True)
+
+    def check_initial_auth(self):
+        remembered_user = self.auth_manager.get_current_user()
+        if remembered_user:
+            self.current_user = remembered_user
+            self.show_welcome_back_screen()
+        else:
+            self.show_login_screen()
+
+    def show_login_screen(self):
+        self.create_root_container()
+        login_view = LoginRegisterView(self.current_container, self.auth_manager, on_success_callback=self.on_login_success)
+        login_view.pack(fill="both", expand=True)
+
+    def show_welcome_back_screen(self):
+        self.create_root_container()
+        welcome_view = WelcomeBackView(
+            self.current_container,
+            username=self.current_user["username"],
+            on_enter_callback=self.enter_app,
+            on_switch_account_callback=self.logout
+        )
+        welcome_view.pack(fill="both", expand=True)
+
+    def on_login_success(self, user: dict):
+        self.current_user = user
+        self.enter_app()
+
+    def enter_app(self):
+        self.create_root_container()
+
+        self.task_manager = TaskManager(self.storage, user_id=self.current_user["id"])
+
+        self.current_container.grid_columnconfigure(0, weight=0)
+        self.current_container.grid_columnconfigure(1, weight=1)
+        self.current_container.grid_rowconfigure(0, weight=1)
+
         self.setup_sidebar()
 
-        # 2. Container Principal
-        self.main_container = ctk.CTkFrame(self, fg_color="transparent")
+        self.main_container = ctk.CTkFrame(self.current_container, fg_color="transparent")
         self.main_container.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
         self.main_container.grid_columnconfigure(0, weight=1)
         self.main_container.grid_rowconfigure(0, weight=1)
 
-        # 3. Mapeamento de Telas (Views)
         self.views = {
             "tasks": DashboardView(self.main_container, self.task_manager),
             "blog": BlogView(self.main_container),
@@ -162,56 +192,57 @@ class TaskFlowApp(ctk.CTk):
             "talk": TalkDevsView(self.main_container),
         }
 
-        # Exibir a tela padrão
         self.show_view("tasks")
 
     def setup_sidebar(self):
-        # Cria a barra lateral de navegação.
-        sidebar = ctk.CTkFrame(self, fg_color=COLORS["panel"], width=200, corner_radius=0)
-        sidebar.grid(row=0, column=0, sticky="nsew")
+        self.sidebar = ctk.CTkFrame(self.current_container, fg_color=COLORS["panel"], width=220, corner_radius=0)
+        self.sidebar.grid(row=0, column=0, sticky="nsew")
 
-        title = ctk.CTkLabel(sidebar, text="TaskFlow", font=("Segoe UI", 20, "bold"), text_color=COLORS["primary"])
-        title.pack(pady=(20, 30), padx=20)
+        title = ctk.CTkLabel(self.sidebar, text="TaskFlow", font=("Segoe UI", 20, "bold"), text_color=COLORS["primary"])
+        title.pack(pady=(20, 10), padx=20)
+
+        user_badge = ctk.CTkLabel(
+            self.sidebar,
+            text=f"👤 {self.current_user['username']}",
+            font=FONTS["small"],
+            text_color=COLORS["muted"]
+        )
+        user_badge.pack(pady=(0, 20), padx=20)
 
         btn_tasks = ctk.CTkButton(
-            sidebar, 
-            text="📋 Minhas Tarefas", 
-            fg_color="transparent", 
-            hover_color=COLORS["surface"],
-            anchor="w",
-            command=lambda: self.show_view("tasks")
+            self.sidebar, text="📋 Minhas Tarefas", fg_color="transparent", hover_color=COLORS["surface"],
+            anchor="w", command=lambda: self.show_view("tasks")
         )
         btn_tasks.pack(fill="x", padx=10, pady=5)
 
         btn_blog = ctk.CTkButton(
-            sidebar, 
-            text="📢 Blog", 
-            fg_color="transparent", 
-            hover_color=COLORS["surface"],
-            anchor="w",
-            command=lambda: self.show_view("blog")
+            self.sidebar, text="📢 Blog", fg_color="transparent", hover_color=COLORS["surface"],
+            anchor="w", command=lambda: self.show_view("blog")
         )
         btn_blog.pack(fill="x", padx=10, pady=5)
 
         btn_settings = ctk.CTkButton(
-            sidebar, 
-            text="⚙️ Configurações", 
-            fg_color="transparent", 
-            hover_color=COLORS["surface"],
-            anchor="w",
-            command=lambda: self.show_view("settings")
+            self.sidebar, text="⚙️ Configurações", fg_color="transparent", hover_color=COLORS["surface"],
+            anchor="w", command=lambda: self.show_view("settings")
         )
         btn_settings.pack(fill="x", padx=10, pady=5)
 
         btn_talk = ctk.CTkButton(
-            sidebar, 
-            text="💬 Fale Conosco", 
-            fg_color="transparent", 
-            hover_color=COLORS["surface"],
-            anchor="w",
-            command=lambda: self.show_view("talk")
+            self.sidebar, text="💬 Fale Conosco", fg_color="transparent", hover_color=COLORS["surface"],
+            anchor="w", command=lambda: self.show_view("talk")
         )
         btn_talk.pack(fill="x", padx=10, pady=5)
+
+        logout_btn = ctk.CTkButton(
+            self.sidebar,
+            text="🚪 Sair da Conta",
+            fg_color="transparent",
+            hover_color="#ef4444",
+            text_color="#ef4444",
+            anchor="w",
+            command=self.logout
+        )
+        logout_btn.pack(side="bottom", fill="x", padx=10, pady=20)
 
     def show_view(self, view_name: str):
         for view in self.views.values():
@@ -219,6 +250,11 @@ class TaskFlowApp(ctk.CTk):
 
         if view_name in self.views:
             self.views[view_name].pack(fill="both", expand=True)
+
+    def logout(self):
+        self.auth_manager.logout()
+        self.current_user = None
+        self.show_login_screen()
 
 
 def run():
