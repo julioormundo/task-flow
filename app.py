@@ -3,6 +3,7 @@ import webbrowser
 import customtkinter as ctk
 from config import COLORS, FONTS, SPACING, WINDOW_SIZE, WINDOW_TITLE
 from data.database import SQLiteDatabase
+from data.translations import t, set_language
 from logic.auth_manager import AuthManager
 from logic.task_manager import TaskManager
 from ui.auth_view import LoginRegisterView, WelcomeBackView
@@ -10,9 +11,12 @@ from ui.components import RoundedFrame
 from ui.dashboard import DashboardView
 
 class BlogView(ctk.CTkFrame):
+    """Tela do Blog de Atualizações e Avisos."""
+    
     def __init__(self, master, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
-        title = ctk.CTkLabel(self, text="📢 Blog de Atualizações", font=("Segoe UI", 20, "bold"), text_color=COLORS["text"])
+        
+        title = ctk.CTkLabel(self, text=f"📢 {t('blog')}", font=("Segoe UI", 20, "bold"), text_color=COLORS["text"])
         title.pack(anchor="w", padx=20, pady=(20, 10))
         
         card = RoundedFrame(self, fg_color=COLORS["panel"])
@@ -39,23 +43,48 @@ class BlogView(ctk.CTkFrame):
 
 
 class SettingsView(ctk.CTkFrame):
-    """Tela de Configurações com Aparência, Backup e Opções de Conta."""
+    """Tela de Configurações com Aparência, Idioma e Exportação de Dados."""
     
-    def __init__(self, master, task_manager, **kwargs):
+    def __init__(self, master, task_manager, on_language_change_callback=None, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
         self.task_manager = task_manager
+        self.on_language_change_callback = on_language_change_callback
 
-        title = ctk.CTkLabel(self, text="⚙️ Configurações", font=("Segoe UI", 20, "bold"), text_color=COLORS["text"])
+        title = ctk.CTkLabel(self, text=f"⚙️ {t('settings')}", font=("Segoe UI", 20, "bold"), text_color=COLORS["text"])
         title.pack(anchor="w", padx=20, pady=(20, 10))
 
-        # --- CARD 1: APARÊNCIA DA INTERFACE ---
+        # --- CARD 1: IDIOMA / LANGUAGE ---
+        card_lang = RoundedFrame(self, fg_color=COLORS["panel"])
+        card_lang.pack(fill="x", padx=20, pady=10)
+
+        lang_title = ctk.CTkLabel(card_lang, text=f"🌐 {t('lang_title')}", font=("Segoe UI", 16, "bold"), text_color=COLORS["text"])
+        lang_title.pack(anchor="w", padx=20, pady=(15, 5))
+
+        lang_desc = ctk.CTkLabel(card_lang, text=t('lang_desc'), font=("Segoe UI", 13), text_color=COLORS["muted"])
+        lang_desc.pack(anchor="w", padx=20, pady=(0, 10))
+
+        self.lang_segmented = ctk.CTkSegmentedButton(
+            card_lang,
+            values=["Português", "English"],
+            selected_color=COLORS["primary"],
+            selected_hover_color=COLORS["primary_hover"],
+            unselected_color=COLORS["surface"],
+            unselected_hover_color=COLORS["border"],
+            text_color=COLORS["text"],
+            command=self.change_language
+        )
+        current_lang_code = t("current_lang_code")
+        self.lang_segmented.set("English" if current_lang_code == "en" else "Português")
+        self.lang_segmented.pack(anchor="w", padx=20, pady=(0, 15))
+
+        # --- CARD 2: APARÊNCIA DA INTERFACE ---
         card_theme = RoundedFrame(self, fg_color=COLORS["panel"])
         card_theme.pack(fill="x", padx=20, pady=10)
 
-        theme_title = ctk.CTkLabel(card_theme, text="🎨 Aparência e Tema", font=("Segoe UI", 16, "bold"), text_color=COLORS["text"])
+        theme_title = ctk.CTkLabel(card_theme, text=f"🎨 {t('theme_title')}", font=("Segoe UI", 16, "bold"), text_color=COLORS["text"])
         theme_title.pack(anchor="w", padx=20, pady=(15, 5))
 
-        theme_desc = ctk.CTkLabel(card_theme, text="Escolha a preferência visual do aplicativo.", font=("Segoe UI", 13), text_color=COLORS["muted"])
+        theme_desc = ctk.CTkLabel(card_theme, text=t('theme_desc'), font=("Segoe UI", 13), text_color=COLORS["muted"])
         theme_desc.pack(anchor="w", padx=20, pady=(0, 10))
 
         self.theme_segmented = ctk.CTkSegmentedButton(
@@ -71,14 +100,14 @@ class SettingsView(ctk.CTkFrame):
         self.theme_segmented.set("Escuro")
         self.theme_segmented.pack(anchor="w", padx=20, pady=(0, 15))
 
-        # --- CARD 2: EXPORTAÇÃO E BACKUP ---
+        # --- CARD 3: EXPORTAÇÃO E BACKUP ---
         card_export = RoundedFrame(self, fg_color=COLORS["panel"])
         card_export.pack(fill="x", padx=20, pady=10)
 
-        export_title = ctk.CTkLabel(card_export, text="📁 Backup e Exportação de Dados", font=("Segoe UI", 16, "bold"), text_color=COLORS["text"])
+        export_title = ctk.CTkLabel(card_export, text=f"📁 {t('export_title')}", font=("Segoe UI", 16, "bold"), text_color=COLORS["text"])
         export_title.pack(anchor="w", padx=20, pady=(15, 5))
 
-        export_desc = ctk.CTkLabel(card_export, text="Exporte suas tarefas em formatos externos para segurança ou análise.", font=("Segoe UI", 13), text_color=COLORS["muted"])
+        export_desc = ctk.CTkLabel(card_export, text=t('export_desc'), font=("Segoe UI", 13), text_color=COLORS["muted"])
         export_desc.pack(anchor="w", padx=20, pady=(0, 15))
 
         btn_frame = ctk.CTkFrame(card_export, fg_color="transparent")
@@ -86,7 +115,7 @@ class SettingsView(ctk.CTkFrame):
 
         btn_json = ctk.CTkButton(
             btn_frame,
-            text="📄 Exportar em JSON",
+            text=f"📄 {t('export_json')}",
             fg_color=COLORS["primary"],
             hover_color=COLORS["primary_hover"],
             command=self.export_json
@@ -95,7 +124,7 @@ class SettingsView(ctk.CTkFrame):
 
         btn_csv = ctk.CTkButton(
             btn_frame,
-            text="📊 Exportar em CSV (Excel)",
+            text=f"📊 {t('export_csv')}",
             fg_color=COLORS["surface"],
             hover_color=COLORS["primary"],
             command=self.export_csv
@@ -104,6 +133,12 @@ class SettingsView(ctk.CTkFrame):
 
         self.status_label = ctk.CTkLabel(card_export, text="", font=("Segoe UI", 12), text_color=COLORS["success"])
         self.status_label.pack(anchor="w", padx=20, pady=(0, 15))
+
+    def change_language(self, selected_label: str):
+        lang_code = "pt" if selected_label == "Português" else "en"
+        set_language(lang_code)
+        if self.on_language_change_callback:
+            self.on_language_change_callback()
 
     def change_appearance_mode(self, mode_selected: str):
         mode_map = {"Escuro": "dark", "Claro": "light", "Sistema": "system"}
@@ -142,10 +177,9 @@ class TalkDevsView(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
 
-        title = ctk.CTkLabel(self, text="💬 Fale Conosco", font=("Segoe UI", 20, "bold"), text_color=COLORS["text"])
+        title = ctk.CTkLabel(self, text=f"💬 {t('talk')}", font=("Segoe UI", 20, "bold"), text_color=COLORS["text"])
         title.pack(anchor="w", padx=20, pady=(20, 10))
 
-        # Card Principal de Contato
         card = RoundedFrame(self, fg_color=COLORS["panel"])
         card.pack(fill="x", padx=20, pady=10)
 
@@ -162,11 +196,9 @@ class TalkDevsView(ctk.CTkFrame):
         )
         dev_desc.pack(anchor="w", padx=20, pady=(0, 20))
 
-        # Botões de Canais de Contato
         btn_container = ctk.CTkFrame(card, fg_color="transparent")
         btn_container.pack(anchor="w", padx=20, pady=(0, 20))
 
-        # 1. Botão Enviar E-mail
         btn_email = ctk.CTkButton(
             btn_container,
             text="✉️ Enviar E-mail",
@@ -178,7 +210,6 @@ class TalkDevsView(ctk.CTkFrame):
         )
         btn_email.pack(side="left", padx=(0, 10))
 
-        # 2. Botão GitHub
         btn_github = ctk.CTkButton(
             btn_container,
             text="🐙 Ver GitHub",
@@ -190,7 +221,6 @@ class TalkDevsView(ctk.CTkFrame):
         )
         btn_github.pack(side="left", padx=(0, 10))
 
-        # 3. Botão LinkedIn
         btn_linkedin = ctk.CTkButton(
             btn_container,
             text="💼 LinkedIn",
@@ -204,6 +234,8 @@ class TalkDevsView(ctk.CTkFrame):
 
 
 class TaskFlowApp(ctk.CTk):
+    """Aplicativo Principal TaskFlow."""
+    
     def __init__(self):
         super().__init__()
         self.title(WINDOW_TITLE)
@@ -253,6 +285,11 @@ class TaskFlowApp(ctk.CTk):
         self.current_user = user
         self.enter_app()
 
+    def reload_ui(self, target_view="settings"):
+        """Recarrega a interface do app para aplicar novo idioma e permanece na tela atual."""
+        self.enter_app()
+        self.show_view(target_view)
+
     def enter_app(self):
         self.create_root_container()
 
@@ -272,7 +309,11 @@ class TaskFlowApp(ctk.CTk):
         self.views = {
             "tasks": DashboardView(self.main_container, self.task_manager),
             "blog": BlogView(self.main_container),
-            "settings": SettingsView(self.main_container, self.task_manager),
+            "settings": SettingsView(
+                self.main_container, 
+                self.task_manager, 
+                on_language_change_callback=lambda: self.reload_ui("settings")
+            ),
             "talk": TalkDevsView(self.main_container),
         }
 
@@ -294,32 +335,32 @@ class TaskFlowApp(ctk.CTk):
         user_badge.pack(pady=(0, 20), padx=20)
 
         btn_tasks = ctk.CTkButton(
-            self.sidebar, text="📋 Minhas Tarefas", fg_color="transparent", hover_color=COLORS["surface"],
+            self.sidebar, text=f"📋 {t('my_tasks')}", fg_color="transparent", hover_color=COLORS["surface"],
             anchor="w", command=lambda: self.show_view("tasks")
         )
         btn_tasks.pack(fill="x", padx=10, pady=5)
 
         btn_blog = ctk.CTkButton(
-            self.sidebar, text="📢 Blog", fg_color="transparent", hover_color=COLORS["surface"],
+            self.sidebar, text=f"📢 {t('blog')}", fg_color="transparent", hover_color=COLORS["surface"],
             anchor="w", command=lambda: self.show_view("blog")
         )
         btn_blog.pack(fill="x", padx=10, pady=5)
 
         btn_settings = ctk.CTkButton(
-            self.sidebar, text="⚙️ Configurações", fg_color="transparent", hover_color=COLORS["surface"],
+            self.sidebar, text=f"⚙️ {t('settings')}", fg_color="transparent", hover_color=COLORS["surface"],
             anchor="w", command=lambda: self.show_view("settings")
         )
         btn_settings.pack(fill="x", padx=10, pady=5)
 
         btn_talk = ctk.CTkButton(
-            self.sidebar, text="💬 Fale Conosco", fg_color="transparent", hover_color=COLORS["surface"],
+            self.sidebar, text=f"💬 {t('talk')}", fg_color="transparent", hover_color=COLORS["surface"],
             anchor="w", command=lambda: self.show_view("talk")
         )
         btn_talk.pack(fill="x", padx=10, pady=5)
 
         logout_btn = ctk.CTkButton(
             self.sidebar,
-            text="🚪 Sair da Conta",
+            text=f"🚪 {t('logout')}",
             fg_color="transparent",
             hover_color="#ef4444",
             text_color="#ef4444",
