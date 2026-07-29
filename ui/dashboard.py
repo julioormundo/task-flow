@@ -118,7 +118,16 @@ class DashboardView(ctk.CTkFrame):
         self.lbl_stat_progress.configure(text=f"{stats['percentage']}%")
 
     def on_filter_changed(self, selected_filter):
-        self.current_filter = selected_filter
+        self.current_filter = {
+            t("dashboard_filter_all"): "Todas",
+            t("dashboard_filter_pending"): "Pendentes",
+            t("dashboard_filter_completed"): "Concluídas",
+            t("dashboard_filter_favorites"): "Favoritas",
+            "All": "Todas",
+            "Pending": "Pendentes",
+            "Completed": "Concluídas",
+            "Favorites": "Favoritas",
+        }.get(selected_filter, selected_filter)
         self.refresh_tasks()
 
     def open_add_dialog(self):

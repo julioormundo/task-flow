@@ -37,13 +37,14 @@ class TaskManager:
         return None
 
     def list_tasks(self, filter_by: str = "Todas", search_query: str = "") -> List[Task]:
-        tasks = self._tasks
+        tasks = list(self._tasks)
 
-        if filter_by == "Pendentes":
+        normalized_filter = (filter_by or "Todas").strip().lower()
+        if normalized_filter in {"pendentes", "pending"}:
             tasks = [t for t in tasks if not t.completed]
-        elif filter_by == "Concluídas":
+        elif normalized_filter in {"concluídas", "completed"}:
             tasks = [t for t in tasks if t.completed]
-        elif filter_by == "Favoritas":
+        elif normalized_filter in {"favoritas", "favorites"}:
             tasks = [t for t in tasks if t.is_favorite]
 
         query = search_query.strip().lower()
