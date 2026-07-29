@@ -1,0 +1,20 @@
+# Python / Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ambientes virtuais
+.venv/
+.venv-*/
+venv/
+env/
+
+# Banco de dados local (para não enviar seus dados)
+*.db
+data/*.db
+data/tasks.db
+
+# Configurações do VS Code ou IDEs
+.vscode/
+.idea/
