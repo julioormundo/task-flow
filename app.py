@@ -2,8 +2,9 @@ from tkinter import filedialog
 import webbrowser
 import customtkinter as ctk
 from config import COLORS, FONTS, SPACING, WINDOW_SIZE, WINDOW_TITLE
+from data import translations
 from data.database import SQLiteDatabase
-from data.translations import t, set_language
+from data.translations import t, set_language, get_language_label
 from logic.auth_manager import AuthManager
 from logic.task_manager import TaskManager
 from ui.auth_view import LoginRegisterView, WelcomeBackView
@@ -73,8 +74,7 @@ class SettingsView(ctk.CTkFrame):
             text_color=COLORS["text"],
             command=self.change_language
         )
-        current_lang_code = t("current_lang_code")
-        self.lang_segmented.set("English" if current_lang_code == "en" else "Português")
+        self.lang_segmented.set(get_language_label(translations.CURRENT_LANG))
         self.lang_segmented.pack(anchor="w", padx=20, pady=(0, 15))
 
         # --- CARD 2: APARÊNCIA DA INTERFACE ---
@@ -137,6 +137,7 @@ class SettingsView(ctk.CTkFrame):
     def change_language(self, selected_label: str):
         lang_code = "pt" if selected_label == "Português" else "en"
         set_language(lang_code)
+        self.lang_segmented.set(get_language_label(translations.CURRENT_LANG))
         if self.on_language_change_callback:
             self.on_language_change_callback()
 
@@ -249,6 +250,7 @@ class TaskFlowApp(ctk.CTk):
         self.current_user = None
         self.task_manager = None
         self.current_container = None
+        self.current_view_name = "tasks"
 
         self.check_initial_auth()
 
@@ -287,10 +289,9 @@ class TaskFlowApp(ctk.CTk):
 
     def reload_ui(self, target_view="settings"):
         """Recarrega a interface do app para aplicar novo idioma e permanece na tela atual."""
-        self.enter_app()
-        self.show_view(target_view)
+        self.enter_app(target_view)
 
-    def enter_app(self):
+    def enter_app(self, initial_view="tasks"):
         self.create_root_container()
 
         self.task_manager = TaskManager(self.storage, user_id=self.current_user["id"])
@@ -317,7 +318,7 @@ class TaskFlowApp(ctk.CTk):
             "talk": TalkDevsView(self.main_container),
         }
 
-        self.show_view("tasks")
+        self.show_view(initial_view)
 
     def setup_sidebar(self):
         self.sidebar = ctk.CTkFrame(self.current_container, fg_color=COLORS["panel"], width=220, corner_radius=0)
@@ -335,46 +336,77 @@ class TaskFlowApp(ctk.CTk):
         user_badge.pack(pady=(0, 20), padx=20)
 
         btn_tasks = ctk.CTkButton(
-            self.sidebar, text=f"📋 {t('my_tasks')}", fg_color="transparent", hover_color=COLORS["surface"],
-            anchor="w", command=lambda: self.show_view("tasks")
+            self.sidebar,
+            text=f"📋 {t('my_tasks')}",
+            fg_color="transparent",
+            hover_color=COLORS["surface"],
+            border_width=0,
+            height=38,
+            anchor="w",
+            command=lambda: self.show_view("tasks")
         )
         btn_tasks.pack(fill="x", padx=10, pady=5)
 
         btn_blog = ctk.CTkButton(
-            self.sidebar, text=f"📢 {t('blog')}", fg_color="transparent", hover_color=COLORS["surface"],
-            anchor="w", command=lambda: self.show_view("blog")
+            self.sidebar,
+            text=f"📢 {t('blog')}",
+            fg_color="transparent",
+            hover_color=COLORS["surface"],
+            border_width=0,
+            height=38,
+            anchor="w",
+            command=lambda: self.show_view("blog")
         )
         btn_blog.pack(fill="x", padx=10, pady=5)
 
         btn_settings = ctk.CTkButton(
-            self.sidebar, text=f"⚙️ {t('settings')}", fg_color="transparent", hover_color=COLORS["surface"],
-            anchor="w", command=lambda: self.show_view("settings")
+            self.sidebar,
+            text=f"⚙️ {t('settings')}",
+            fg_color="transparent",
+            hover_color=COLORS["surface"],
+            border_width=0,
+            height=38,
+            anchor="w",
+            command=lambda: self.show_view("settings")
         )
         btn_settings.pack(fill="x", padx=10, pady=5)
 
         btn_talk = ctk.CTkButton(
-            self.sidebar, text=f"💬 {t('talk')}", fg_color="transparent", hover_color=COLORS["surface"],
-            anchor="w", command=lambda: self.show_view("talk")
+            self.sidebar,
+            text=f"💬 {t('talk')}",
+            fg_color="transparent",
+            hover_color=COLORS["surface"],
+            border_width=0,
+            height=38,
+            anchor="w",
+            command=lambda: self.show_view("talk")
         )
         btn_talk.pack(fill="x", padx=10, pady=5)
 
         logout_btn = ctk.CTkButton(
             self.sidebar,
             text=f"🚪 {t('logout')}",
-            fg_color="transparent",
-            hover_color="#ef4444",
-            text_color="#ef4444",
+            fg_color="#1f2937",
+            hover_color="#7f1d1d",
+            text_color="#fda4af",
+            border_width=1,
+            border_color="#ef4444",
+            corner_radius=10,
+            height=38,
             anchor="w",
             command=self.logout
         )
         logout_btn.pack(side="bottom", fill="x", padx=10, pady=20)
 
     def show_view(self, view_name: str):
+        if view_name in self.views:
+            self.current_view_name = view_name
+
         for view in self.views.values():
             view.pack_forget()
 
-        if view_name in self.views:
-            self.views[view_name].pack(fill="both", expand=True)
+        if self.current_view_name in self.views:
+            self.views[self.current_view_name].pack(fill="both", expand=True)
 
     def logout(self):
         self.auth_manager.logout()

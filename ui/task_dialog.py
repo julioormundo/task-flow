@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from config import COLORS, FONTS
+from data.translations import t
 
 class TaskDialog(ctk.CTkToplevel):
     """Janela Modal Pop-up para Criar e Editar Tarefas."""
@@ -11,7 +12,7 @@ class TaskDialog(ctk.CTkToplevel):
         self.on_save_callback = on_save_callback
 
         is_edit = task is not None
-        self.title("Editar Tarefa" if is_edit else "Nova Tarefa")
+        self.title(t("task_dialog_title_edit") if is_edit else t("task_dialog_title_new"))
         self.geometry("450x420")
         self.resizable(False, False)
         self.configure(fg_color=COLORS["background"])
@@ -21,25 +22,25 @@ class TaskDialog(ctk.CTkToplevel):
         self.grab_set()
 
         # Título da modal
-        dialog_title = "Editar Tarefa" if is_edit else "Adicionar Nova Tarefa"
+        dialog_title = t("task_dialog_title_edit") if is_edit else t("task_dialog_subtitle_new")
         ctk.CTkLabel(self, text=dialog_title, font=FONTS["title"], text_color=COLORS["text"]).pack(pady=(20, 10))
 
         # Título da Tarefa
-        ctk.CTkLabel(self, text="Título:", font=FONTS["body"], text_color=COLORS["text"]).pack(anchor="w", padx=30, pady=(10, 2))
-        self.title_entry = ctk.CTkEntry(self, placeholder_text="Ex: Estudar Python", width=390)
+        ctk.CTkLabel(self, text=t("task_dialog_title_label"), font=FONTS["body"], text_color=COLORS["text"]).pack(anchor="w", padx=30, pady=(10, 2))
+        self.title_entry = ctk.CTkEntry(self, placeholder_text=t("task_dialog_placeholder_title"), width=390)
         self.title_entry.pack(padx=30, pady=(0, 10))
         if is_edit:
             self.title_entry.insert(0, task.title)
 
         # Descrição da Tarefa
-        ctk.CTkLabel(self, text="Descrição:", font=FONTS["body"], text_color=COLORS["text"]).pack(anchor="w", padx=30, pady=(5, 2))
-        self.description_entry = ctk.CTkEntry(self, placeholder_text="Detalhes da tarefa...", width=390)
+        ctk.CTkLabel(self, text=t("task_dialog_description_label"), font=FONTS["body"], text_color=COLORS["text"]).pack(anchor="w", padx=30, pady=(5, 2))
+        self.description_entry = ctk.CTkEntry(self, placeholder_text=t("task_dialog_placeholder_description"), width=390)
         self.description_entry.pack(padx=30, pady=(0, 10))
         if is_edit:
             self.description_entry.insert(0, task.description)
 
         # Prioridade
-        ctk.CTkLabel(self, text="Prioridade:", font=FONTS["body"], text_color=COLORS["text"]).pack(anchor="w", padx=30, pady=(5, 2))
+        ctk.CTkLabel(self, text=t("task_dialog_priority_label"), font=FONTS["body"], text_color=COLORS["text"]).pack(anchor="w", padx=30, pady=(5, 2))
         self.priority_option = ctk.CTkOptionMenu(
             self,
             values=["Baixa", "Média", "Alta"],
@@ -59,7 +60,7 @@ class TaskDialog(ctk.CTkToplevel):
         self.error_label.pack(pady=(0, 5))
 
         # Botão Salvar
-        btn_text = "Salvar Alterações" if is_edit else "Adicionar Tarefa"
+        btn_text = t("task_dialog_save_edit") if is_edit else t("task_dialog_save_new")
         save_btn = ctk.CTkButton(
             self,
             text=btn_text,
@@ -77,7 +78,7 @@ class TaskDialog(ctk.CTkToplevel):
         priority = self.priority_option.get()
 
         if not title:
-            self.error_label.configure(text="O título é obrigatório.")
+            self.error_label.configure(text=t("task_dialog_error_title"))
             return
 
         try:
@@ -91,4 +92,4 @@ class TaskDialog(ctk.CTkToplevel):
 
             self.destroy()
         except Exception as e:
-            self.error_label.configure(text=str(e))
+            self.error_label.configure(text=t("task_dialog_error_generic"))

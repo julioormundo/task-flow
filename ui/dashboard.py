@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from config import COLORS, FONTS, SPACING
+from data.translations import t
 from ui.components import RoundedFrame
 from ui.task_dialog import TaskDialog
 
@@ -30,12 +31,12 @@ class DashboardView(ctk.CTkFrame):
         text_container = ctk.CTkFrame(header, fg_color="transparent")
         text_container.grid(row=0, column=0, sticky="w", padx=SPACING["large"], pady=SPACING["medium"])
 
-        title = ctk.CTkLabel(text_container, text="TaskFlow", font=FONTS["title"], text_color=COLORS["text"])
+        title = ctk.CTkLabel(text_container, text=t("dashboard_title"), font=FONTS["title"], text_color=COLORS["text"])
         title.pack(anchor="w")
 
         subtitle = ctk.CTkLabel(
             text_container,
-            text="Organize suas tarefas com prioridades e estatísticas dinâmicas",
+            text=t("dashboard_subtitle"),
             font=FONTS["body"],
             text_color=COLORS["muted"]
         )
@@ -43,7 +44,7 @@ class DashboardView(ctk.CTkFrame):
 
         add_btn = ctk.CTkButton(
             header,
-            text="+ Nova Tarefa",
+            text=t("dashboard_add_task"),
             font=("Segoe UI", 13, "bold"),
             fg_color=COLORS["primary"],
             hover_color=COLORS["primary_hover"],
@@ -57,10 +58,10 @@ class DashboardView(ctk.CTkFrame):
         self.stats_frame.grid(row=1, column=0, sticky="ew", padx=SPACING["large"], pady=(0, SPACING["small"]))
         self.stats_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
 
-        self.lbl_stat_total = self._create_stat_card(self.stats_frame, "Total", "0", 0)
-        self.lbl_stat_pending = self._create_stat_card(self.stats_frame, "Pendentes", "0", 1)
-        self.lbl_stat_completed = self._create_stat_card(self.stats_frame, "Concluídas", "0", 2)
-        self.lbl_stat_progress = self._create_stat_card(self.stats_frame, "Progresso", "0%", 3)
+        self.lbl_stat_total = self._create_stat_card(self.stats_frame, t("stat_total"), "0", 0)
+        self.lbl_stat_pending = self._create_stat_card(self.stats_frame, t("stat_pending"), "0", 1)
+        self.lbl_stat_completed = self._create_stat_card(self.stats_frame, t("stat_completed"), "0", 2)
+        self.lbl_stat_progress = self._create_stat_card(self.stats_frame, t("stat_progress"), "0%", 3)
 
         # 3. Busca e Filtros
         controls_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -69,7 +70,7 @@ class DashboardView(ctk.CTkFrame):
 
         self.search_entry = ctk.CTkEntry(
             controls_frame,
-            placeholder_text="🔍 Buscar por título ou descrição...",
+            placeholder_text=t("dashboard_search_placeholder"),
             height=34,
             fg_color=COLORS["panel"],
             border_color=COLORS["border"]
@@ -79,7 +80,7 @@ class DashboardView(ctk.CTkFrame):
 
         self.filter_segmented = ctk.CTkSegmentedButton(
             controls_frame,
-            values=["Todas", "Pendentes", "Concluídas", "Favoritas"],
+            values=[t("dashboard_filter_all"), t("dashboard_filter_pending"), t("dashboard_filter_completed"), t("dashboard_filter_favorites")],
             selected_color=COLORS["primary"],
             selected_hover_color=COLORS["primary_hover"],
             unselected_color=COLORS["panel"],
@@ -87,7 +88,7 @@ class DashboardView(ctk.CTkFrame):
             text_color=COLORS["text"],
             command=self.on_filter_changed
         )
-        self.filter_segmented.set("Todas")
+        self.filter_segmented.set(t("dashboard_filter_all"))
         self.filter_segmented.grid(row=0, column=1, sticky="e")
 
         # 4. Lista de Tarefas
@@ -136,7 +137,7 @@ class DashboardView(ctk.CTkFrame):
         tasks = self.task_manager.list_tasks(filter_by=self.current_filter, search_query=search_query)
 
         if not tasks:
-            msg = "Nenhuma tarefa encontrada." if not search_query else f"Nenhum resultado para '{search_query}'."
+            msg = t("dashboard_empty") if not search_query else t("dashboard_empty_search", query=search_query)
             empty_label = ctk.CTkLabel(
                 self.task_list,
                 text=msg,
@@ -166,7 +167,7 @@ class DashboardView(ctk.CTkFrame):
             )
             p_badge.grid(row=0, column=0, sticky="w")
 
-            date_text = f"Criado em: {task.created_at}" if task.created_at else ""
+            date_text = t("dashboard_created_at", date=task.created_at) if task.created_at else ""
             date_label = ctk.CTkLabel(top_bar, text=date_text, font=FONTS["small"], text_color=COLORS["muted"])
             date_label.grid(row=0, column=1, sticky="w", padx=SPACING["medium"])
 
@@ -203,7 +204,7 @@ class DashboardView(ctk.CTkFrame):
 
             status_btn = ctk.CTkButton(
                 actions_frame,
-                text="Desfazer" if task.completed else "Concluir",
+                text=t("dashboard_complete_alt") if task.completed else t("dashboard_complete"),
                 width=75,
                 height=30,
                 fg_color=COLORS["surface"] if task.completed else COLORS["success"],
@@ -214,7 +215,7 @@ class DashboardView(ctk.CTkFrame):
 
             edit_btn = ctk.CTkButton(
                 actions_frame,
-                text="✏️",
+                text=t("dashboard_edit"),
                 width=35,
                 height=30,
                 fg_color=COLORS["surface"],
@@ -225,7 +226,7 @@ class DashboardView(ctk.CTkFrame):
 
             delete_btn = ctk.CTkButton(
                 actions_frame,
-                text="🗑️",
+                text=t("dashboard_delete"),
                 width=35,
                 height=30,
                 fg_color="#ef4444",
