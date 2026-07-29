@@ -7,7 +7,6 @@ from ui.components import RoundedFrame
 from ui.dashboard import DashboardView
 
 class BlogView(ctk.CTkFrame):
-    """Tela do Blog/Novidades do App com texto responsivo."""
     def __init__(self, master, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
         
@@ -44,7 +43,6 @@ class BlogView(ctk.CTkFrame):
 
 
 class SettingsView(ctk.CTkFrame):
-    """Tela de Configurações com opções de Exportação de Dados."""
     def __init__(self, master, task_manager, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
         self.task_manager = task_manager
@@ -121,7 +119,6 @@ class SettingsView(ctk.CTkFrame):
 
 
 class TalkDevsView(ctk.CTkFrame):
-    """Tela Fale Conosco."""
     def __init__(self, master, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
         
@@ -169,7 +166,7 @@ class TaskFlowApp(ctk.CTk):
         self.show_view("tasks")
 
     def setup_sidebar(self):
-        """Cria a barra lateral de navegação."""
+        # Cria a barra lateral de navegação.
         sidebar = ctk.CTkFrame(self, fg_color=COLORS["panel"], width=200, corner_radius=0)
         sidebar.grid(row=0, column=0, sticky="nsew")
 
