@@ -2,7 +2,7 @@ from typing import List, Optional
 from models.task import Task
 
 class TaskManager:
-    """Controla as operações de tarefas (CRUD + Filtros)."""
+    """Controla as operações de tarefas (CRUD + Filtros + Estatísticas)."""
 
     def __init__(self, storage):
         self.storage = storage
@@ -25,7 +25,6 @@ class TaskManager:
         return task
 
     def update_task(self, task_id: int, title: str, description: str, priority: str) -> Optional[Task]:
-        """Edita os dados de uma tarefa existente."""
         title = title.strip()
         if not title:
             raise ValueError("O título não pode ficar vazio.")
@@ -39,15 +38,43 @@ class TaskManager:
                 return task
         return None
 
-    def list_tasks(self, filter_by: str = "Todas") -> List[Task]:
-        """Retorna as tarefas filtradas conforme a aba selecionada."""
+    def list_tasks(self, filter_by: str = "Todas", search_query: str = "") -> List[Task]:
+        """Retorna as tarefas filtradas por aba e por termo de pesquisa."""
+        tasks = self._tasks
+
+        # 1. Filtro por Categoria / Aba
         if filter_by == "Pendentes":
-            return [t for t in self._tasks if not t.completed]
+            tasks = [t for t in tasks if not t.completed]
         elif filter_by == "Concluídas":
-            return [t for t in self._tasks if t.completed]
+            tasks = [t for t in tasks if t.completed]
         elif filter_by == "Favoritas":
-            return [t for t in self._tasks if t.is_favorite]
-        return list(self._tasks)
+            tasks = [t for t in tasks if t.is_favorite]
+
+        # 2. Filtro por Busca (Título ou Descrição)
+        query = search_query.strip().lower()
+        if query:
+            tasks = [
+                t for t in tasks
+                if query in t.title.lower() or query in t.description.lower()
+            ]
+
+        return tasks
+
+    def get_stats(self) -> dict:
+        """Calcula as estatísticas gerais do aplicativo."""
+        total = len(self._tasks)
+        completed = sum(1 for t in self._tasks if t.completed)
+        pending = total - completed
+        favorites = sum(1 for t in self._tasks if t.is_favorite)
+        percentage = round((completed / total) * 100) if total > 0 else 0
+
+        return {
+            "total": total,
+            "completed": completed,
+            "pending": pending,
+            "favorites": favorites,
+            "percentage": percentage
+        }
 
     def toggle_task_completion(self, task_id: int) -> Optional[Task]:
         for task in self._tasks:
@@ -58,7 +85,6 @@ class TaskManager:
         return None
 
     def toggle_favorite(self, task_id: int) -> Optional[Task]:
-        """Alterna o status de favorita da tarefa."""
         for task in self._tasks:
             if task.id == task_id:
                 task.is_favorite = not task.is_favorite

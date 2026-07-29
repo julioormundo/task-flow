@@ -1,7 +1,6 @@
 """Configurações centrais do projeto.
 
-Este arquivo existe para que você altere aparência, textos e valores em um só
-lugar. A ideia é evitar espalhar cores, fontes e tamanhos pelo código.
+Alteração de aparência, textos e valores em um só lugar.
 """
 
 import customtkinter
