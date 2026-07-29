@@ -11,9 +11,9 @@ O **TaskFlow** é uma aplicação desktop de gerenciamento de tarefas (To-Do Lis
 
 ## 📸 Demonstração da Interface
 
-| Minhas Tarefas (Dashboard) | Modal de Cadastro / Edição |
+| Minhas Tarefas (Dashboard) | .
 | :---: | :---: |
-| ![Dashboard](assets/dashboard.png) | ![Modal](https://via.placeholder.com/450x250.png?text=Modal+TaskDialog) |
+| ![Dashboard](assets/dashboard.png) | 
 
 ---
 
