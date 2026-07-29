@@ -104,3 +104,38 @@ class TaskManager:
         if not self._tasks:
             return 1
         return max(task.id for task in self._tasks) + 1
+
+    def export_to_json(self, filepath: str) -> None:
+        """Exporta todas as tarefas para um arquivo JSON."""
+        data = [
+            {
+                "id": t.id,
+                "title": t.title,
+                "description": t.description,
+                "priority": t.priority,
+                "completed": t.completed,
+                "is_favorite": t.is_favorite,
+                "created_at": t.created_at
+            }
+            for t in self._tasks
+        ]
+        with open(filepath, "w", encoding="utf-8") as handle:
+            json.dump(data, handle, ensure_ascii=False, indent=2)
+
+    def export_to_csv(self, filepath: str) -> None:
+        """Exporta todas as tarefas para um arquivo CSV estruturado."""
+        with open(filepath, "w", newline="", encoding="utf-8-sig") as handle:
+            writer = csv.writer(handle)
+            # Cabeçalho da planilha
+            writer.writerow(["ID", "Título", "Descrição", "Prioridade", "Concluída", "Favorita", "Data de Criação"])
+            
+            for t in self._tasks:
+                writer.writerow([
+                    t.id,
+                    t.title,
+                    t.description,
+                    t.priority,
+                    "Sim" if t.completed else "Não",
+                    "Sim" if t.is_favorite else "Não",
+                    t.created_at
+                ])
