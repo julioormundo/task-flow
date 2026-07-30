@@ -2,6 +2,8 @@ import hashlib
 from datetime import datetime
 from typing import Optional
 
+from data.translations import t
+
 class AuthManager:
     """Gerencia autenticação, cadastro, criptografia de senha e sessões."""
 
@@ -16,18 +18,19 @@ class AuthManager:
         """Cadastra um novo usuário no sistema."""
         username = username.strip()
         password = password.strip()
+        normalized_username = username.lower()
 
         if not username or not password:
-            raise ValueError("Preencha o nome de usuário e a senha.")
+            raise ValueError(t("auth_required_fields"))
 
         if len(username) < 3:
-            raise ValueError("O nome de usuário deve ter pelo menos 3 caracteres.")
+            raise ValueError(t("auth_username_min_length"))
 
         if len(password) < 4:
-            raise ValueError("A senha deve ter pelo menos 4 caracteres.")
+            raise ValueError(t("auth_password_min_length"))
 
-        if self.storage.get_user_by_username(username):
-            raise ValueError("Este nome de usuário já está cadastrado.")
+        if self.storage.get_user_by_username(normalized_username):
+            raise ValueError(t("auth_username_taken"))
 
         pwd_hash = self._hash_password(password)
         created_at = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -43,11 +46,11 @@ class AuthManager:
         password = password.strip()
 
         if not username or not password:
-            raise ValueError("Informe usuário e senha para entrar.")
+            raise ValueError(t("auth_required_login"))
 
-        user = self.storage.get_user_by_username(username)
+        user = self.storage.get_user_by_username(username.lower())
         if not user or user["password_hash"] != self._hash_password(password):
-            raise ValueError("Usuário ou senha incorretos.")
+            raise ValueError(t("auth_login_error"))
 
         self.storage.set_active_session(user["id"])
         return user

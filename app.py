@@ -23,12 +23,12 @@ class BlogView(ctk.CTkFrame):
         card = RoundedFrame(self, fg_color=COLORS["panel"])
         card.pack(fill="x", padx=20, pady=10)
         
-        notice_badge = ctk.CTkLabel(card, text="⚠️ TOME NOTA", font=("Segoe UI", 11, "bold"), text_color="#f59e0b")
+        notice_badge = ctk.CTkLabel(card, text=t("blog_notice"), font=("Segoe UI", 11, "bold"), text_color="#f59e0b")
         notice_badge.pack(anchor="w", padx=20, pady=(15, 5))
         
         self.post = ctk.CTkLabel(
             card, 
-            text="Este programa foi desenvolvido por Julio Ormundo utilizando um modelo gerado por Inteligência Artificial. Ele é um protótipo educacional e pode conter limitações ou bugs. Use com cautela e mantenha backup dos seus dados.",
+            text=t("blog_message"),
             font=("Segoe UI", 13),
             text_color=COLORS["muted"],
             justify="left",
@@ -137,6 +137,7 @@ class SettingsView(ctk.CTkFrame):
     def change_language(self, selected_label: str):
         lang_code = "pt" if selected_label == "Português" else "en"
         set_language(lang_code)
+        self.storage.save_language_preference(lang_code)
         self.lang_segmented.set(get_language_label(translations.CURRENT_LANG))
         if self.on_language_change_callback:
             self.on_language_change_callback()
@@ -251,6 +252,10 @@ class TaskFlowApp(ctk.CTk):
         self.task_manager = None
         self.current_container = None
         self.current_view_name = "tasks"
+
+        saved_lang = self.storage.get_language_preference()
+        if saved_lang:
+            set_language(saved_lang)
 
         self.check_initial_auth()
 

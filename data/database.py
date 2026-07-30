@@ -27,11 +27,17 @@ class SQLiteDatabase:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT UNIQUE NOT NULL,
+                    username TEXT NOT NULL,
                     password_hash TEXT NOT NULL,
                     created_at TEXT
                 )
             """)
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='users' AND name='idx_users_username_ci'")
+            has_ci_index = cursor.fetchone() is not None
+            if not has_ci_index:
+                self._migrate_users_table(conn)
+            else:
+                cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_ci ON users (LOWER(username))")
 
             # 2. Tabela de Sessão Ativa
             cursor.execute("""
@@ -39,6 +45,12 @@ class SQLiteDatabase:
                     id INTEGER PRIMARY KEY CHECK (id = 1),
                     user_id INTEGER,
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS app_settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
                 )
             """)
 
@@ -70,25 +82,52 @@ class SQLiteDatabase:
             cursor.execute("UPDATE tasks SET priority = 'Média' WHERE priority LIKE 'M%dia'")
             conn.commit()
 
+    def _migrate_users_table(self, conn):
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+        if not cursor.fetchone():
+            return
+
+        cursor.execute("ALTER TABLE users RENAME TO users_old")
+        cursor.execute("""
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TEXT
+            )
+        """)
+        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_ci ON users (LOWER(username))")
+        cursor.execute("""
+            INSERT INTO users (id, username, password_hash, created_at)
+            SELECT id, username, password_hash, created_at FROM users_old
+        """)
+        cursor.execute("DROP TABLE users_old")
+        conn.commit()
+
     # --- USUÁRIOS E SESSÃO ---
 
     def create_user(self, username: str, password_hash: str, created_at: str) -> int:
         with self._get_connection() as conn:
             cursor = conn.cursor()
+            normalized_username = username.strip()
             cursor.execute(
                 "INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)",
-                (username, password_hash, created_at)
+                (normalized_username, password_hash, created_at)
             )
             conn.commit()
             return cursor.lastrowid
 
     def get_user_by_username(self, username: str) -> Optional[dict]:
+        normalized_username = username.strip().lower()
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT id, username, password_hash, created_at FROM users WHERE username = ?", (username,))
-            row = cursor.fetchone()
-            if row:
-                return {"id": row[0], "username": row[1], "password_hash": row[2], "created_at": row[3]}
+            cursor.execute("SELECT id, username, password_hash, created_at FROM users")
+            rows = cursor.fetchall()
+            for row in rows:
+                stored_username = (row[1] or "").strip().lower()
+                if stored_username == normalized_username:
+                    return {"id": row[0], "username": row[1], "password_hash": row[2], "created_at": row[3]}
         return None
 
     def get_user_by_id(self, user_id: int) -> Optional[dict]:
@@ -118,6 +157,19 @@ class SQLiteDatabase:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM session WHERE id = 1")
             conn.commit()
+
+    def save_language_preference(self, lang_code: str) -> None:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO app_settings (key, value) VALUES ('language', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (lang_code,))
+            conn.commit()
+
+    def get_language_preference(self) -> Optional[str]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT value FROM app_settings WHERE key = 'language'")
+            row = cursor.fetchone()
+            return row[0] if row else None
 
     # --- TAREFAS POR USUÁRIO ---
 

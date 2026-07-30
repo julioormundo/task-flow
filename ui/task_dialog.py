@@ -43,7 +43,7 @@ class TaskDialog(ctk.CTkToplevel):
         ctk.CTkLabel(self, text=t("task_dialog_priority_label"), font=FONTS["body"], text_color=COLORS["text"]).pack(anchor="w", padx=30, pady=(5, 2))
         self.priority_option = ctk.CTkOptionMenu(
             self,
-            values=["Baixa", "Média", "Alta"],
+            values=[t("priority_low"), t("priority_medium"), t("priority_high")],
             width=390,
             fg_color=COLORS["surface"],
             button_color=COLORS["primary"],
@@ -53,7 +53,7 @@ class TaskDialog(ctk.CTkToplevel):
         if is_edit:
             self.priority_option.set(task.priority)
         else:
-            self.priority_option.set("Média")
+            self.priority_option.set(t("priority_medium"))
 
         # Mensagem de erro
         self.error_label = ctk.CTkLabel(self, text="", text_color="#ef4444", font=FONTS["small"])
