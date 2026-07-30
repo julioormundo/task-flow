@@ -51,7 +51,7 @@ class TaskDialog(ctk.CTkToplevel):
         )
         self.priority_option.pack(padx=30, pady=(0, 15))
         if is_edit:
-            self.priority_option.set(task.priority)
+            self.priority_option.set(self._translate_priority(task.priority))
         else:
             self.priority_option.set(t("priority_medium"))
 
@@ -75,7 +75,8 @@ class TaskDialog(ctk.CTkToplevel):
     def save(self):
         title = self.title_entry.get().strip()
         description = self.description_entry.get().strip()
-        priority = self.priority_option.get()
+        priority_label = self.priority_option.get()
+        priority = self._to_canonical_priority(priority_label)
 
         if not title:
             self.error_label.configure(text=t("task_dialog_error_title"))

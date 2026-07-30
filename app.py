@@ -46,9 +46,10 @@ class BlogView(ctk.CTkFrame):
 class SettingsView(ctk.CTkFrame):
     """Tela de Configurações com Aparência, Idioma e Exportação de Dados."""
     
-    def __init__(self, master, task_manager, on_language_change_callback=None, **kwargs):
+    def __init__(self, master, task_manager, storage, on_language_change_callback=None, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
         self.task_manager = task_manager
+        self.storage = storage
         self.on_language_change_callback = on_language_change_callback
 
         title = ctk.CTkLabel(self, text=f"⚙️ {t('settings')}", font=("Segoe UI", 20, "bold"), text_color=COLORS["text"])
@@ -89,7 +90,7 @@ class SettingsView(ctk.CTkFrame):
 
         self.theme_segmented = ctk.CTkSegmentedButton(
             card_theme,
-            values=["Escuro", "Claro", "Sistema"],
+            values=[t("theme_dark"), t("theme_light"), t("theme_system")],
             selected_color=COLORS["primary"],
             selected_hover_color=COLORS["primary_hover"],
             unselected_color=COLORS["surface"],
@@ -97,7 +98,7 @@ class SettingsView(ctk.CTkFrame):
             text_color=COLORS["text"],
             command=self.change_appearance_mode
         )
-        self.theme_segmented.set("Escuro")
+        self.theme_segmented.set(t("theme_dark"))
         self.theme_segmented.pack(anchor="w", padx=20, pady=(0, 15))
 
         # --- CARD 3: EXPORTAÇÃO E BACKUP ---
@@ -143,14 +144,18 @@ class SettingsView(ctk.CTkFrame):
             self.on_language_change_callback()
 
     def change_appearance_mode(self, mode_selected: str):
-        mode_map = {"Escuro": "dark", "Claro": "light", "Sistema": "system"}
+        mode_map = {
+            t("theme_dark"): "dark",
+            t("theme_light"): "light",
+            t("theme_system"): "system",
+        }
         ctk.set_appearance_mode(mode_map.get(mode_selected, "dark"))
 
     def export_json(self):
         filepath = filedialog.asksaveasfilename(
             defaultextension=".json",
-            filetypes=[("Arquivo JSON", "*.json"), ("Todos os arquivos", "*.*")],
-            title="Salvar exportação JSON"
+            filetypes=[(t("filetype_json"), "*.json"), (t("filetype_all"), "*.*")],
+            title=t("export_json_dialog_title")
         )
         if filepath:
             try:
@@ -162,8 +167,8 @@ class SettingsView(ctk.CTkFrame):
     def export_csv(self):
         filepath = filedialog.asksaveasfilename(
             defaultextension=".csv",
-            filetypes=[("Arquivo CSV", "*.csv"), ("Todos os arquivos", "*.*")],
-            title="Salvar exportação CSV"
+            filetypes=[(t("filetype_json"), "*.csv"), (t("filetype_all"), "*.*")],
+            title=t("export_csv_dialog_title")
         )
         if filepath:
             try:
@@ -185,12 +190,12 @@ class TalkDevsView(ctk.CTkFrame):
         card = RoundedFrame(self, fg_color=COLORS["panel"])
         card.pack(fill="x", padx=20, pady=10)
 
-        dev_title = ctk.CTkLabel(card, text="Desenvolvido por Julio Ormundo", font=("Segoe UI", 16, "bold"), text_color=COLORS["text"])
+        dev_title = ctk.CTkLabel(card, text=t("contact_title"), font=("Segoe UI", 16, "bold"), text_color=COLORS["text"])
         dev_title.pack(anchor="w", padx=20, pady=(15, 5))
 
         dev_desc = ctk.CTkLabel(
             card,
-            text="Tem dúvidas, encontrou um bug ou deseja dar um feedback sobre o TaskFlow? Entre em contato diretamente através de um dos canais abaixo:",
+            text=t("contact_desc"),
             font=("Segoe UI", 13),
             text_color=COLORS["muted"],
             justify="left",
@@ -203,7 +208,7 @@ class TalkDevsView(ctk.CTkFrame):
 
         btn_email = ctk.CTkButton(
             btn_container,
-            text="✉️ Enviar E-mail",
+            text=t("contact_email"),
             font=("Segoe UI", 13, "bold"),
             fg_color=COLORS["primary"],
             hover_color=COLORS["primary_hover"],
@@ -214,7 +219,7 @@ class TalkDevsView(ctk.CTkFrame):
 
         btn_github = ctk.CTkButton(
             btn_container,
-            text="🐙 Ver GitHub",
+            text=t("contact_github"),
             font=("Segoe UI", 13, "bold"),
             fg_color=COLORS["surface"],
             hover_color=COLORS["border"],
@@ -225,7 +230,7 @@ class TalkDevsView(ctk.CTkFrame):
 
         btn_linkedin = ctk.CTkButton(
             btn_container,
-            text="💼 LinkedIn",
+            text=t("contact_linkedin"),
             font=("Segoe UI", 13, "bold"),
             fg_color="#0077b5",
             hover_color="#005885",
@@ -316,8 +321,9 @@ class TaskFlowApp(ctk.CTk):
             "tasks": DashboardView(self.main_container, self.task_manager),
             "blog": BlogView(self.main_container),
             "settings": SettingsView(
-                self.main_container, 
-                self.task_manager, 
+                self.main_container,
+                self.task_manager,
+                self.storage,
                 on_language_change_callback=lambda: self.reload_ui("settings")
             ),
             "talk": TalkDevsView(self.main_container),
@@ -329,7 +335,7 @@ class TaskFlowApp(ctk.CTk):
         self.sidebar = ctk.CTkFrame(self.current_container, fg_color=COLORS["panel"], width=220, corner_radius=0)
         self.sidebar.grid(row=0, column=0, sticky="nsew")
 
-        title = ctk.CTkLabel(self.sidebar, text="TaskFlow", font=("Segoe UI", 20, "bold"), text_color=COLORS["primary"])
+        title = ctk.CTkLabel(self.sidebar, text=t("app_title"), font=("Segoe UI", 20, "bold"), text_color=COLORS["primary"])
         title.pack(pady=(20, 10), padx=20)
 
         user_badge = ctk.CTkLabel(

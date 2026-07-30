@@ -16,7 +16,7 @@ class DashboardView(ctk.CTkFrame):
     def __init__(self, master, task_manager, **kwargs):
         super().__init__(master, corner_radius=18, fg_color=COLORS["background"], **kwargs)
         self.task_manager = task_manager
-        self.current_filter = "Todas"
+        self.current_filter = t("dashboard_filter_all")
         self.build_ui()
 
     def build_ui(self):
@@ -117,17 +117,16 @@ class DashboardView(ctk.CTkFrame):
         self.lbl_stat_completed.configure(text=str(stats["completed"]))
         self.lbl_stat_progress.configure(text=f"{stats['percentage']}%")
 
+    def _translate_priority(self, canonical_priority: str) -> str:
+        mapping = {
+            "Baixa": t("priority_low"),
+            "Média": t("priority_medium"),
+            "Alta": t("priority_high"),
+        }
+        return mapping.get(canonical_priority, canonical_priority)
+
     def on_filter_changed(self, selected_filter):
-        self.current_filter = {
-            t("dashboard_filter_all"): "Todas",
-            t("dashboard_filter_pending"): "Pendentes",
-            t("dashboard_filter_completed"): "Concluídas",
-            t("dashboard_filter_favorites"): "Favoritas",
-            "All": "Todas",
-            "Pending": "Pendentes",
-            "Completed": "Concluídas",
-            "Favorites": "Favoritas",
-        }.get(selected_filter, selected_filter)
+        self.current_filter = selected_filter
         self.refresh_tasks()
 
     def open_add_dialog(self):
@@ -166,9 +165,10 @@ class DashboardView(ctk.CTkFrame):
             top_bar.grid_columnconfigure(1, weight=1)
 
             p_color = PRIORITY_COLORS.get(task.priority, COLORS["primary"])
+            p_text = self._translate_priority(task.priority)
             p_badge = ctk.CTkLabel(
                 top_bar,
-                text=f"  {task.priority}  ",
+                text=f"  {p_text}  ",
                 font=FONTS["small"],
                 text_color="#ffffff",
                 fg_color=p_color,
